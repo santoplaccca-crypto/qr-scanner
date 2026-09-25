@@ -1,82 +1,452 @@
+<!DOCTYPE html>
+<html lang="it">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <title>Accesso e Scanner Convenzioni</title>
+
+  <script src="https://cdn.jsdelivr.net/npm/jsqr@1.4.0/dist/jsQR.min.js"></script>
+
+  <style>
+    * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
+
+    html, body {
+      margin: 0; width: 100%; height: 100%;
+      font-family: Arial, sans-serif;
+      overflow: hidden;
+    }
+
+    /* ===== SCHERMATA LOGIN ===== */
+    #loginScreen {
+      position: fixed; inset: 0;
+      display: flex; justify-content: center; align-items: center;
+      background: #f4f4f9;
+      padding: 20px;
+      z-index: 30;
+    }
+
+    .login-container {
+      background: white; padding: 25px 30px; border-radius: 10px;
+      box-shadow: 0 4px 12px rgba(0,0,0,0.12);
+      width: 100%; max-width: 320px;
+    }
+
+    .login-container h2 { text-align: center; color: #333; margin-top: 0; }
+
+    .login-container input {
+      width: 100%; padding: 12px; margin: 8px 0;
+      border: 1px solid #ccc; border-radius: 6px; font-size: 15px;
+    }
+
+    .login-container button {
+      width: 100%; padding: 12px; margin-top: 8px;
+      background-color: #4CAF50; color: white; border: none;
+      border-radius: 6px; cursor: pointer; font-size: 16px; font-weight: bold;
+    }
+
+    .login-container button:hover { background-color: #45a049; }
+    .login-container button:disabled { background-color: #9e9e9e; }
+
+    #loginMessage { margin-top: 12px; text-align: center; font-size: 14px; min-height: 18px; }
+
+    /* ===== APP SCANNER ===== */
+    #app {
+      display: none;
+      position: relative; width: 100%; height: 100vh; height: 100dvh;
+      background: #000;
+    }
+
+    #video { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; background: #000; }
+    #canvas { display: none; }
+
+    #scannerBox {
+      position: absolute; top: 50%; left: 50%;
+      width: min(72vw, 320px); height: min(72vw, 320px);
+      transform: translate(-50%, -50%);
+      border: 3px solid white; border-radius: 24px;
+      box-shadow: 0 0 0 9999px rgba(0, 0, 0, 0.35);
+      pointer-events: none;
+    }
+
+    #status {
+      position: absolute;
+      top: calc(env(safe-area-inset-top) + 20px);
+      left: 50%; transform: translateX(-50%);
+      width: min(92%, 500px);
+      padding: 12px 18px; border-radius: 20px;
+      background: rgba(0, 0, 0, 0.75); color: white;
+      text-align: center; font-size: 15px; z-index: 10;
+    }
+
+    #welcomeBar {
+      position: absolute;
+      top: calc(env(safe-area-inset-top) + 68px);
+      left: 50%; transform: translateX(-50%);
+      width: min(92%, 500px);
+      color: white; opacity: 0.8;
+      text-align: center; font-size: 13px; z-index: 10;
+    }
+
+    #startPanel {
+      position: absolute; inset: 0;
+      display: flex; flex-direction: column; justify-content: center; align-items: center;
+      padding: 30px; background: rgba(0, 0, 0, 0.9); color: white;
+      text-align: center; z-index: 20;
+    }
+
+    #startPanel h1 { margin: 0 0 12px; }
+    #startPanel p { max-width: 400px; line-height: 1.5; margin: 0 0 24px; }
+
+    #app button {
+      border: 0; border-radius: 999px; padding: 16px 26px;
+      font-size: 17px; font-weight: bold; cursor: pointer;
+      background: white; color: black;
+    }
+
+    #technical { display: none; margin-top: 15px; font-family: monospace; font-size: 11px; opacity: 0.8; overflow-wrap: anywhere; }
+
+    #resultPanel {
+      display: none; position: absolute; left: 50%;
+      bottom: calc(env(safe-area-inset-bottom) + 25px);
+      transform: translateX(-50%); width: min(92%, 500px);
+      padding: 20px; border-radius: 20px; color: white; text-align: center; z-index: 15;
+    }
+
+    #resultText { margin-bottom: 16px; font-size: 18px; line-height: 1.4; overflow-wrap: anywhere; }
+
+    .success { background: rgba(22, 101, 52, 0.94) !important; }
+    .error { background: rgba(153, 27, 27, 0.94) !important; }
+
+    #logoutLink {
+      position: absolute; bottom: calc(env(safe-area-inset-bottom) + 10px); left: 10px;
+      color: white; opacity: 0.6; font-size: 12px; z-index: 15; text-decoration: underline; cursor: pointer;
+    }
+  </style>
+</head>
+
+<body>
+
+  <!-- ===== SCHERMATA LOGIN ===== -->
+  <div id="loginScreen">
+    <div class="login-container">
+      <h2>Accesso Tesserati</h2>
+      <input type="text" id="codiceFiscale" placeholder="Codice Fiscale" required>
+      <input type="text" id="matricola" placeholder="Numero Matricola" required>
+      <button id="loginButton">Accedi</button>
+      <div id="loginMessage"></div>
+    </div>
+  </div>
+
+  <!-- ===== APP SCANNER (nascosta finché non si fa login) ===== -->
+  <div id="app">
+
+    <video id="video" autoplay muted playsinline></video>
+    <canvas id="canvas"></canvas>
+    <div id="scannerBox"></div>
+
+    <div id="status">Pronto</div>
+    <div id="welcomeBar"></div>
+
+    <div id="startPanel">
+      <h1>Scanner QR</h1>
+      <p id="startText">Premi il pulsante e inquadra il QR Code.</p>
+      <button id="startButton">Attiva fotocamera</button>
+      <div id="technical"></div>
+    </div>
+
+    <div id="resultPanel">
+      <div id="resultText"></div>
+      <button id="retryButton">Scansiona un altro QR</button>
+    </div>
+
+    <div id="logoutLink">Cambia utente</div>
+
+  </div>
+
 <script>
-    // INSERISCI QUI IL NUOVO URL CHE HAI APPENA COPIATO
-    const API_URL = "https://script.google.com/macros/s/AKfycbwcdhgx7mwoN-9s-x0xDZDhXuPbvizEkbijbKbxr3j_jQqwHhc0LEKMrfMrV2IMDkw/exec";
-    
-    let html5QrcodeScanner;
 
-    // --- FUNZIONE 1: LOGIN ---
-    async function faiLogin() {
-      const cf = document.getElementById('cf').value;
-      const mat = document.getElementById('mat').value;
-      const msgBox = document.getElementById('msg-login');
-      
-      if(!cf || !mat) { msgBox.innerText = "Compila tutti i campi."; return; }
-      msgBox.innerText = "Connessione al server...";
+  // =======================================================
+  // CONFIGURAZIONE: URL del backend Apps Script unificato
+  // (quello con Codice.gs / appsscript.json che gestisce login+scan)
+  // =======================================================
+  const GOOGLE_APPS_SCRIPT_URL =
+    'https://script.google.com/macros/s/AKfycbxhGyY0LDlspqBPyPB_kSPZXDCGg5QjLQ83Kv1pAzCgCgJPQsemn2G33KJDhn6XRz8m/exec';
 
-      // Creiamo l'URL con i parametri GET
-      const urlConParametri = API_URL + "?azione=login&cf=" + encodeURIComponent(cf) + "&mat=" + encodeURIComponent(mat);
+  const REQUEST_TIMEOUT = 15000;
 
-      try {
-        const response = await fetch(urlConParametri, { method: 'GET' });
-        const dati = await response.json();
+  // Dati dell'utente loggato, tenuti in memoria: essendo login e scanner
+  // sulla STESSA pagina/dominio, non serve localStorage né passare dati via URL.
+  let associazioneUtente = null;
+  let nomeUtente = null;
+  let cfUtente = null;
 
-        if (dati.successo) {
-          localStorage.setItem('userAssociazione', dati.associazione);
-          
-          document.getElementById('panel-login').style.display = 'none';
-          document.getElementById('panel-scanner').style.display = 'block';
-          document.getElementById('dati-utente').innerText = "Tesserato: " + dati.nome + " (" + dati.associazione + ")";
-          
-          avviaScanner();
-        } else {
-          msgBox.innerText = dati.messaggio;
-        }
-      } catch (error) {
-        console.error(error);
-        msgBox.innerText = "Errore di connessione a Google.";
+  /**
+   * Chiama il backend Apps Script via JSONP (tag <script>), evitando
+   * problemi di CORS visto che GitHub Pages e script.google.com sono domini diversi.
+   * "action" vale 'login' oppure 'scan'.
+   */
+  function chiamaAPI(action, extraParams) {
+    return new Promise(function (resolve, reject) {
+
+      const callbackName = '__cb_' + Date.now() + '_' + Math.floor(Math.random() * 100000);
+      const script = document.createElement('script');
+      let timeoutId = null;
+      let completed = false;
+
+      function cleanup() {
+        if (timeoutId) clearTimeout(timeoutId);
+        if (script.parentNode) script.parentNode.removeChild(script);
+        try { delete window[callbackName]; } catch (_) { window[callbackName] = undefined; }
       }
-    }
 
-    // --- FUNZIONE 2: AVVIO FOTOCAMERA ---
-    function avviaScanner() {
-      document.getElementById('risultato').style.display = 'none';
-      document.getElementById('btn-riavvia').style.display = 'none';
-
-      html5QrcodeScanner = new Html5QrcodeScanner("reader", { fps: 10, qrbox: {width: 250, height: 250} }, false);
-      html5QrcodeScanner.render(onScanSuccess, function(){});
-    }
-
-    // --- FUNZIONE 3: INVIO QR CODE AL SERVER ---
-    async function onScanSuccess(codiceLetto) {
-      html5QrcodeScanner.clear(); 
-      
-      const divRisultato = document.getElementById('risultato');
-      divRisultato.style.display = 'block';
-      divRisultato.className = "";
-      divRisultato.innerText = "Verifica convenzione...";
-
-      const associazione = localStorage.getItem('userAssociazione');
-
-      // Creiamo l'URL con i parametri GET per lo scanner
-      const urlConParametri = API_URL + "?azione=scan&qrCode=" + encodeURIComponent(codiceLetto) + "&associazione=" + encodeURIComponent(associazione);
-
-      try {
-        const response = await fetch(urlConParametri, { method: 'GET' });
-        const dati = await response.json();
-
-        if (dati.successo) {
-          divRisultato.className = "successo";
-          divRisultato.innerHTML = "✅ SCONTO VALIDO<br><br>" + dati.messaggio;
-        } else {
-          divRisultato.className = "errore";
-          divRisultato.innerHTML = "❌ SCONTO NEGATO<br><br>" + dati.messaggio;
-        }
-        document.getElementById('btn-riavvia').style.display = 'block';
-      } catch (error) {
-        console.error(error);
-        divRisultato.className = "errore";
-        divRisultato.innerHTML = "Errore di comunicazione col database.";
-        document.getElementById('btn-riavvia').style.display = 'block';
+      function finish(fn, value) {
+        if (completed) return;
+        completed = true;
+        cleanup();
+        fn(value);
       }
+
+      window[callbackName] = function (response) { finish(resolve, response); };
+      script.onerror = function () { finish(reject, new Error('Errore di connessione al server')); };
+
+      const tuttiParams = Object.assign({ action: action, callback: callbackName }, extraParams);
+      script.src = GOOGLE_APPS_SCRIPT_URL + '?' + new URLSearchParams(tuttiParams).toString();
+      document.body.appendChild(script);
+
+      timeoutId = setTimeout(function () {
+        finish(reject, new Error('Timeout: il server non ha risposto'));
+      }, REQUEST_TIMEOUT);
+    });
+  }
+
+  // ===================== LOGIN =====================
+
+  document.getElementById('loginButton').addEventListener('click', effettuaLogin);
+
+  async function effettuaLogin() {
+    const cf = document.getElementById('codiceFiscale').value.toUpperCase().trim();
+    const mat = document.getElementById('matricola').value.trim();
+    const msg = document.getElementById('loginMessage');
+    const btn = document.getElementById('loginButton');
+
+    if (!cf || !mat) {
+      msg.style.color = 'red';
+      msg.textContent = 'Compila tutti i campi.';
+      return;
     }
-  </script>
+
+    btn.disabled = true;
+    msg.style.color = 'blue';
+    msg.textContent = 'Verifica in corso...';
+
+    try {
+      const risposta = await chiamaAPI('login', { cf: cf, matricola: mat });
+
+      if (risposta && risposta.successo) {
+        associazioneUtente = risposta.associazione;
+        nomeUtente = risposta.nome;
+        cfUtente = risposta.cf;
+        mostraScanner();
+      } else {
+        btn.disabled = false;
+        msg.style.color = 'red';
+        msg.textContent = (risposta && risposta.messaggio) || 'Dati non trovati o errati.';
+      }
+    } catch (errore) {
+      btn.disabled = false;
+      msg.style.color = 'red';
+      msg.textContent = 'Errore di connessione al server.';
+    }
+  }
+
+  function mostraScanner() {
+    document.getElementById('loginScreen').style.display = 'none';
+    document.getElementById('app').style.display = 'block';
+    document.getElementById('welcomeBar').textContent =
+      'Accesso come: ' + nomeUtente + ' (' + associazioneUtente + ')';
+  }
+
+  document.getElementById('logoutLink').addEventListener('click', function () {
+    stopCamera();
+    associazioneUtente = null;
+    nomeUtente = null;
+    cfUtente = null;
+    document.getElementById('codiceFiscale').value = '';
+    document.getElementById('matricola').value = '';
+    document.getElementById('loginMessage').textContent = '';
+    document.getElementById('loginButton').disabled = false;
+    document.getElementById('app').style.display = 'none';
+    document.getElementById('loginScreen').style.display = 'flex';
+  });
+
+  // ===================== SCANNER =====================
+
+  const video = document.getElementById('video');
+  const canvas = document.getElementById('canvas');
+  const context = canvas.getContext('2d', { willReadFrequently: true });
+  const statusElement = document.getElementById('status');
+  const startPanel = document.getElementById('startPanel');
+  const startText = document.getElementById('startText');
+  const startButton = document.getElementById('startButton');
+  const technical = document.getElementById('technical');
+  const resultPanel = document.getElementById('resultPanel');
+  const resultText = document.getElementById('resultText');
+  const retryButton = document.getElementById('retryButton');
+
+  let stream = null;
+  let scanning = false;
+  let qrFound = false;
+  let animationFrame = null;
+  let lastScan = 0;
+
+  const SCAN_INTERVAL = 120;
+
+  startButton.addEventListener('click', startScanner);
+  retryButton.addEventListener('click', startScanner);
+
+  async function startScanner() {
+    stopCamera();
+    qrFound = false;
+    scanning = false;
+    resultPanel.style.display = 'none';
+    technical.style.display = 'none';
+    setStatus('Richiesta accesso alla fotocamera...');
+
+    if (!window.isSecureContext) {
+      showCameraError('La pagina deve essere aperta tramite HTTPS.', 'SecureContext = false');
+      return;
+    }
+
+    if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
+      showCameraError('Questo browser non supporta la fotocamera.', 'getUserMedia non disponibile');
+      return;
+    }
+
+    try {
+      try {
+        stream = await navigator.mediaDevices.getUserMedia({
+          audio: false,
+          video: { facingMode: { ideal: 'environment' }, width: { ideal: 1280 }, height: { ideal: 720 } }
+        });
+      } catch (erroreCameraPosteriore) {
+        stream = await navigator.mediaDevices.getUserMedia({ audio: false, video: true });
+      }
+
+      video.srcObject = stream;
+      await video.play();
+
+      startPanel.style.display = 'none';
+      setStatus('Inquadra un QR Code');
+
+      scanning = true;
+      lastScan = 0;
+      animationFrame = requestAnimationFrame(scanFrame);
+    } catch (error) {
+      handleCameraError(error);
+    }
+  }
+
+  function scanFrame(timestamp) {
+    if (!scanning || qrFound) return;
+
+    animationFrame = requestAnimationFrame(scanFrame);
+
+    if (timestamp - lastScan < SCAN_INTERVAL) return;
+    lastScan = timestamp;
+
+    if (video.readyState < video.HAVE_ENOUGH_DATA) return;
+
+    const videoWidth = video.videoWidth;
+    const videoHeight = video.videoHeight;
+    if (!videoWidth || !videoHeight) return;
+
+    const maxWidth = 900;
+    const scale = Math.min(1, maxWidth / videoWidth);
+
+    canvas.width = Math.round(videoWidth * scale);
+    canvas.height = Math.round(videoHeight * scale);
+    context.drawImage(video, 0, 0, canvas.width, canvas.height);
+
+    try {
+      const imageData = context.getImageData(0, 0, canvas.width, canvas.height);
+      const result = jsQR(imageData.data, imageData.width, imageData.height, { inversionAttempts: 'attemptBoth' });
+
+      if (result && result.data) {
+        qrFound = true;
+        handleQRCode(result.data);
+      }
+    } catch (error) {
+      console.error('Errore QR:', error);
+    }
+  }
+
+  async function handleQRCode(qrValue) {
+    stopCamera();
+    setStatus('QR letto. Ricerca convenzione...');
+
+    try {
+      const risposta = await chiamaAPI('scan', { qrCode: qrValue, associazione: associazioneUtente });
+
+      if (risposta && risposta.valido) {
+        mostraRisultato(risposta.messaggio, true);
+      } else {
+        mostraRisultato((risposta && risposta.messaggio) || 'Nessuna convenzione trovata.', false);
+      }
+    } catch (error) {
+      console.error(error);
+      mostraRisultato('Errore di collegamento al motore di ricerca.', false);
+    }
+  }
+
+  function mostraRisultato(message, success) {
+    resultText.textContent = message;
+    resultPanel.classList.remove('success', 'error');
+    resultPanel.classList.add(success ? 'success' : 'error');
+    resultPanel.style.display = 'block';
+    setStatus(success ? 'Convenzione trovata' : 'Convenzione non trovata', success ? 'success' : 'error');
+  }
+
+  function handleCameraError(error) {
+    const name = (error && error.name) ? error.name : 'Errore sconosciuto';
+    const message = (error && error.message) ? error.message : '';
+
+    if (name === 'NotAllowedError' || name === 'PermissionDeniedError') {
+      showCameraError('Permesso fotocamera negato. Consenti la fotocamera nel browser.', name + ' - ' + message);
+      return;
+    }
+    if (name === 'NotFoundError') {
+      showCameraError('Nessuna fotocamera trovata.', name);
+      return;
+    }
+    showCameraError('Impossibile utilizzare la fotocamera.', name + ' - ' + message);
+  }
+
+  function showCameraError(message, detail) {
+    stopCamera();
+    startPanel.style.display = 'flex';
+    startText.textContent = message;
+    technical.textContent = 'Dettaglio: ' + detail;
+    technical.style.display = 'block';
+    setStatus('Fotocamera non disponibile', 'error');
+  }
+
+  function stopCamera() {
+    scanning = false;
+    if (animationFrame) { cancelAnimationFrame(animationFrame); animationFrame = null; }
+    if (stream) { stream.getTracks().forEach(function (track) { track.stop(); }); stream = null; }
+    video.srcObject = null;
+  }
+
+  function setStatus(text, type) {
+    statusElement.textContent = text;
+    statusElement.classList.remove('success', 'error');
+    if (type) statusElement.classList.add(type);
+  }
+
+  window.addEventListener('pagehide', stopCamera);
+  window.addEventListener('beforeunload', stopCamera);
+
+</script>
+
+</body>
+</html>
