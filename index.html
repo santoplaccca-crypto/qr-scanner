@@ -1,8 +1,6 @@
 <!DOCTYPE html>
 <html lang="it">
-
 <head>
-
   <meta charset="UTF-8">
 
   <meta
@@ -10,141 +8,81 @@
     content="width=device-width, initial-scale=1, viewport-fit=cover"
   >
 
-  <meta
-    name="theme-color"
-    content="#000000"
-  >
+  <title>QR Scanner</title>
 
-  <title>QR Scanner Convenzioni</title>
-
-  <!-- Libreria lettura QR -->
-  <script
-    src="https://cdn.jsdelivr.net/npm/jsqr@1.4.0/dist/jsQR.min.js">
-  </script>
-
+  <script src="https://cdn.jsdelivr.net/npm/jsqr@1.4.0/dist/jsQR.min.js"></script>
 
   <style>
-
     * {
       box-sizing: border-box;
       -webkit-tap-highlight-color: transparent;
     }
 
-
     html,
     body {
-
       margin: 0;
-      padding: 0;
-
       width: 100%;
       height: 100%;
-
       background: #000;
-
-      font-family:
-        Arial,
-        Helvetica,
-        sans-serif;
-
+      font-family: Arial, sans-serif;
       overflow: hidden;
-
     }
-
 
     #app {
-
       position: relative;
-
       width: 100%;
-
       height: 100vh;
       height: 100dvh;
-
       background: #000;
-
     }
-
 
     #video {
-
       position: absolute;
-
       inset: 0;
-
       width: 100%;
       height: 100%;
-
       object-fit: cover;
-
       background: #000;
-
     }
-
 
     #canvas {
-
       display: none;
-
     }
 
-
     #scannerBox {
-
       position: absolute;
-
       top: 50%;
       left: 50%;
 
       width: min(72vw, 320px);
       height: min(72vw, 320px);
 
-      transform:
-        translate(-50%, -50%);
+      transform: translate(-50%, -50%);
 
-      border:
-        3px solid white;
-
-      border-radius:
-        24px;
+      border: 3px solid white;
+      border-radius: 24px;
 
       box-shadow:
-        0 0 0 9999px
-        rgba(0,0,0,.35);
+        0 0 0 9999px rgba(0, 0, 0, 0.35);
 
       pointer-events: none;
-
-      z-index: 3;
-
     }
 
-
     #status {
-
       position: absolute;
 
-      top:
-        calc(
-          env(safe-area-inset-top)
-          + 18px
-        );
-
+      top: calc(env(safe-area-inset-top) + 20px);
       left: 50%;
 
-      transform:
-        translateX(-50%);
+      transform: translateX(-50%);
 
-      width:
-        min(92%, 520px);
+      width: min(92%, 500px);
 
-      padding:
-        12px 16px;
+      padding: 12px 18px;
 
-      border-radius:
-        18px;
+      border-radius: 20px;
 
-      background:
-        rgba(0,0,0,.75);
+      background: rgba(0, 0, 0, 0.75);
 
       color: white;
 
@@ -152,214 +90,119 @@
 
       font-size: 15px;
 
-      line-height: 1.35;
-
       z-index: 10;
-
     }
 
-
     #startPanel {
-
       position: absolute;
-
       inset: 0;
 
       display: flex;
-
       flex-direction: column;
 
       justify-content: center;
-
       align-items: center;
 
       padding: 30px;
 
-      background:
-        rgba(0,0,0,.90);
+      background: rgba(0, 0, 0, 0.9);
 
       color: white;
 
       text-align: center;
 
       z-index: 20;
-
     }
-
 
     #startPanel h1 {
-
-      margin:
-        0 0 12px;
-
-      font-size:
-        28px;
-
+      margin: 0 0 12px;
     }
-
 
     #startPanel p {
-
-      max-width: 420px;
-
-      margin:
-        0 0 24px;
-
-      line-height:
-        1.5;
-
-      color:
-        #ddd;
-
+      max-width: 400px;
+      line-height: 1.5;
+      margin: 0 0 24px;
     }
 
-
     button {
-
       border: 0;
 
-      border-radius:
-        999px;
+      border-radius: 999px;
 
-      padding:
-        16px 26px;
+      padding: 16px 26px;
 
-      font-size:
-        17px;
+      font-size: 17px;
 
-      font-weight:
-        bold;
+      font-weight: bold;
 
       cursor: pointer;
 
-      background:
-        white;
+      background: white;
 
-      color:
-        black;
-
+      color: black;
     }
-
-
-    button:disabled {
-
-      opacity: .55;
-
-    }
-
 
     #resultPanel {
-
       display: none;
 
       position: absolute;
 
       left: 50%;
 
-      bottom:
-        calc(
-          env(safe-area-inset-bottom)
-          + 25px
-        );
+      bottom: calc(env(safe-area-inset-bottom) + 25px);
 
-      transform:
-        translateX(-50%);
+      transform: translateX(-50%);
 
-      width:
-        min(92%, 520px);
+      width: min(92%, 500px);
 
-      padding:
-        20px;
+      padding: 20px;
 
-      border-radius:
-        20px;
+      border-radius: 20px;
 
-      background:
-        rgba(0,0,0,.90);
+      color: white;
 
-      color:
-        white;
+      text-align: center;
 
-      text-align:
-        center;
-
-      z-index:
-        15;
-
+      z-index: 15;
     }
-
 
     #resultText {
+      margin-bottom: 16px;
 
-      margin-bottom:
-        16px;
+      font-size: 18px;
 
-      font-size:
-        18px;
+      line-height: 1.4;
 
-      line-height:
-        1.45;
-
-      overflow-wrap:
-        anywhere;
-
+      overflow-wrap: anywhere;
     }
-
 
     #technical {
-
       display: none;
 
-      margin-top:
-        15px;
+      margin-top: 15px;
 
-      max-width:
-        420px;
+      font-family: monospace;
 
-      font-family:
-        monospace;
+      font-size: 11px;
 
-      font-size:
-        11px;
+      opacity: 0.8;
 
-      color:
-        #ccc;
-
-      overflow-wrap:
-        anywhere;
-
+      overflow-wrap: anywhere;
     }
-
 
     .success {
-
-      background:
-        rgba(22,101,52,.94)
-        !important;
-
+      background: rgba(22, 101, 52, 0.94) !important;
     }
-
 
     .error {
-
-      background:
-        rgba(153,27,27,.94)
-        !important;
-
+      background: rgba(153, 27, 27, 0.94) !important;
     }
-
   </style>
-
 </head>
-
 
 <body>
 
-
 <div id="app">
-
-
-  <!-- VIDEO FOTOCAMERA -->
 
   <video
     id="video"
@@ -368,188 +211,83 @@
     playsinline>
   </video>
 
-
-  <!-- FRAME NASCOSTO UTILIZZATO DA jsQR -->
-
   <canvas id="canvas"></canvas>
-
-
-  <!-- AREA VISIVA SCANNER -->
 
   <div id="scannerBox"></div>
 
-
-  <!-- STATO -->
-
   <div id="status">
-
     Pronto
-
   </div>
-
-
-  <!-- SCHERMATA INIZIALE -->
 
   <div id="startPanel">
 
+    <h1>Scanner QR</h1>
 
-    <h1>
-
-      Scanner QR
-
-    </h1>
-
-
-    <p id="startDescription">
-
-      Attiva la fotocamera e inquadra
-      il QR Code.
-
-      La ricerca nei database viene
-      eseguita automaticamente.
-
+    <p id="startText">
+      Premi il pulsante e inquadra il QR Code.
     </p>
 
-
-    <button
-      id="startButton"
-      type="button">
-
+    <button id="startButton">
       Attiva fotocamera
-
     </button>
-
 
     <div id="technical"></div>
 
-
   </div>
-
-
-  <!-- RISULTATO -->
 
   <div id="resultPanel">
 
+    <div id="resultText"></div>
 
-    <div id="resultText">
-
-    </div>
-
-
-    <button
-      id="retryButton"
-      type="button">
-
+    <button id="retryButton">
       Scansiona un altro QR
-
     </button>
 
-
   </div>
-
 
 </div>
 
 
-
 <script>
 
-
-/************************************************
- *
- * URL GOOGLE APPS SCRIPT
- *
- ************************************************/
-
-
 const GOOGLE_APPS_SCRIPT_URL =
-
   'https://script.google.com/macros/s/AKfycbxhGyY0LDlspqBPyPB_kSPZXDCGg5QjLQ83Kv1pAzCgCgJPQsemn2G33KJDhn6XRz8m/exec';
 
 
-
-/************************************************
- *
- * ELEMENTI HTML
- *
- ************************************************/
-
-
 const video =
-  document.getElementById(
-    'video'
-  );
-
+  document.getElementById('video');
 
 const canvas =
-  document.getElementById(
-    'canvas'
-  );
-
+  document.getElementById('canvas');
 
 const context =
-  canvas.getContext(
-    '2d',
-    {
-      willReadFrequently: true
-    }
-  );
-
+  canvas.getContext('2d', {
+    willReadFrequently: true
+  });
 
 const statusElement =
-  document.getElementById(
-    'status'
-  );
-
+  document.getElementById('status');
 
 const startPanel =
-  document.getElementById(
-    'startPanel'
-  );
+  document.getElementById('startPanel');
 
+const startText =
+  document.getElementById('startText');
 
 const startButton =
-  document.getElementById(
-    'startButton'
-  );
-
-
-const startDescription =
-  document.getElementById(
-    'startDescription'
-  );
-
+  document.getElementById('startButton');
 
 const technical =
-  document.getElementById(
-    'technical'
-  );
-
+  document.getElementById('technical');
 
 const resultPanel =
-  document.getElementById(
-    'resultPanel'
-  );
-
+  document.getElementById('resultPanel');
 
 const resultText =
-  document.getElementById(
-    'resultText'
-  );
-
+  document.getElementById('resultText');
 
 const retryButton =
-  document.getElementById(
-    'retryButton'
-  );
-
-
-
-/************************************************
- *
- * STATO APP
- *
- ************************************************/
+  document.getElementById('retryButton');
 
 
 let stream = null;
@@ -563,20 +301,9 @@ let animationFrame = null;
 let lastScan = 0;
 
 
-const SCAN_INTERVAL =
-  120;
+const SCAN_INTERVAL = 120;
 
-
-const REQUEST_TIMEOUT =
-  15000;
-
-
-
-/************************************************
- *
- * PULSANTI
- *
- ************************************************/
+const REQUEST_TIMEOUT = 15000;
 
 
 startButton.addEventListener(
@@ -591,64 +318,32 @@ retryButton.addEventListener(
 );
 
 
-
-/************************************************
- *
- * AVVIO FOTOCAMERA
- *
- ************************************************/
-
-
 async function startScanner() {
-
 
   stopCamera();
 
+  qrFound = false;
 
-  qrFound =
-    false;
+  scanning = false;
 
+  resultPanel.style.display = 'none';
 
-  scanning =
-    false;
-
-
-  resultPanel.style.display =
-    'none';
-
-
-  technical.style.display =
-    'none';
-
-
-  startButton.disabled =
-    true;
-
+  technical.style.display = 'none';
 
   setStatus(
     'Richiesta accesso alla fotocamera...'
   );
 
 
-  /*
-   * La fotocamera richiede HTTPS.
-   */
+  if (!window.isSecureContext) {
 
-  if (
-    !window.isSecureContext
-  ) {
-
-
-    cameraError(
+    showCameraError(
       'La pagina deve essere aperta tramite HTTPS.',
       'SecureContext = false'
     );
 
-
     return;
-
   }
-
 
 
   if (
@@ -656,86 +351,59 @@ async function startScanner() {
     !navigator.mediaDevices.getUserMedia
   ) {
 
-
-    cameraError(
+    showCameraError(
       'Questo browser non supporta la fotocamera.',
       'getUserMedia non disponibile'
     );
 
-
     return;
-
   }
-
 
 
   try {
 
-
-    /*
-     * Primo tentativo:
-     * fotocamera posteriore.
-     */
-
-
     try {
 
-
       stream =
-        await navigator.mediaDevices
-          .getUserMedia({
+        await navigator.mediaDevices.getUserMedia({
 
-            audio: false,
+          audio: false,
 
-            video: {
+          video: {
 
-              facingMode: {
-                ideal: 'environment'
-              },
+            facingMode: {
+              ideal: 'environment'
+            },
 
-              width: {
-                ideal: 1280
-              },
+            width: {
+              ideal: 1280
+            },
 
-              height: {
-                ideal: 720
-              }
-
+            height: {
+              ideal: 720
             }
 
-          });
+          }
 
+        });
 
     }
-
 
     catch (erroreCameraPosteriore) {
 
-
-      /*
-       * Fallback:
-       * qualsiasi fotocamera.
-       */
-
-
       stream =
-        await navigator.mediaDevices
-          .getUserMedia({
+        await navigator.mediaDevices.getUserMedia({
 
-            audio: false,
+          audio: false,
 
-            video: true
+          video: true
 
-          });
-
+        });
 
     }
 
 
-
-    video.srcObject =
-      stream;
-
+    video.srcObject = stream;
 
     await video.play();
 
@@ -749,12 +417,9 @@ async function startScanner() {
     );
 
 
-    scanning =
-      true;
+    scanning = true;
 
-
-    lastScan =
-      0;
+    lastScan = 0;
 
 
     animationFrame =
@@ -762,202 +427,20 @@ async function startScanner() {
         scanFrame
       );
 
-
   }
 
-
   catch (error) {
-
 
     handleCameraError(
       error
     );
 
-
   }
-
-
-  finally {
-
-
-    startButton.disabled =
-      false;
-
-
-  }
-
 
 }
 
 
-
-/************************************************
- *
- * ERRORI FOTOCAMERA
- *
- ************************************************/
-
-
-function handleCameraError(
-  error
-) {
-
-
-  const errorName =
-    error &&
-    error.name
-
-      ? error.name
-
-      : 'Errore sconosciuto';
-
-
-
-  const errorMessage =
-    error &&
-    error.message
-
-      ? error.message
-
-      : '';
-
-
-
-  if (
-    errorName ===
-      'NotAllowedError' ||
-
-    errorName ===
-      'PermissionDeniedError'
-  ) {
-
-
-    cameraError(
-
-      'Accesso alla fotocamera negato. Consenti la fotocamera nelle autorizzazioni del sito.',
-
-      errorName +
-      ' - ' +
-      errorMessage
-
-    );
-
-
-    return;
-
-  }
-
-
-
-  if (
-    errorName ===
-      'NotFoundError' ||
-
-    errorName ===
-      'DevicesNotFoundError'
-  ) {
-
-
-    cameraError(
-
-      'Nessuna fotocamera trovata.',
-
-      errorName
-
-    );
-
-
-    return;
-
-  }
-
-
-
-  if (
-    errorName ===
-      'NotReadableError'
-  ) {
-
-
-    cameraError(
-
-      'La fotocamera potrebbe essere utilizzata da un’altra applicazione.',
-
-      errorName +
-      ' - ' +
-      errorMessage
-
-    );
-
-
-    return;
-
-  }
-
-
-
-  cameraError(
-
-    'Impossibile utilizzare la fotocamera.',
-
-    errorName +
-    ' - ' +
-    errorMessage
-
-  );
-
-
-}
-
-
-
-function cameraError(
-  message,
-  detail
-) {
-
-
-  stopCamera();
-
-
-  startPanel.style.display =
-    'flex';
-
-
-  startDescription.textContent =
-    message;
-
-
-  technical.textContent =
-    'Dettaglio: ' +
-    detail;
-
-
-  technical.style.display =
-    'block';
-
-
-  setStatus(
-    'Fotocamera non disponibile',
-    'error'
-  );
-
-
-}
-
-
-
-/************************************************
- *
- * LETTURA CONTINUA QR
- *
- ************************************************/
-
-
-function scanFrame(
-  timestamp
-) {
-
+function scanFrame(timestamp) {
 
   if (
     !scanning ||
@@ -969,22 +452,14 @@ function scanFrame(
   }
 
 
-
   animationFrame =
     requestAnimationFrame(
       scanFrame
     );
 
 
-
-  /*
-   * Limita il consumo CPU.
-   */
-
-
   if (
-    timestamp - lastScan
-    <
+    timestamp - lastScan <
     SCAN_INTERVAL
   ) {
 
@@ -993,14 +468,11 @@ function scanFrame(
   }
 
 
-  lastScan =
-    timestamp;
-
+  lastScan = timestamp;
 
 
   if (
-    video.readyState
-    <
+    video.readyState <
     video.HAVE_ENOUGH_DATA
   ) {
 
@@ -1009,14 +481,11 @@ function scanFrame(
   }
 
 
-
   const videoWidth =
     video.videoWidth;
 
-
   const videoHeight =
     video.videoHeight;
-
 
 
   if (
@@ -1029,94 +498,58 @@ function scanFrame(
   }
 
 
-
-  /*
-   * Riduciamo la risoluzione
-   * utilizzata per la scansione.
-   */
-
-
-  const maxWidth =
-    900;
+  const maxWidth = 900;
 
 
   const scale =
     Math.min(
       1,
-      maxWidth /
-      videoWidth
+      maxWidth / videoWidth
     );
 
 
   canvas.width =
-    Math.max(
-      1,
-      Math.round(
-        videoWidth *
-        scale
-      )
+    Math.round(
+      videoWidth * scale
     );
 
 
   canvas.height =
-    Math.max(
-      1,
-      Math.round(
-        videoHeight *
-        scale
-      )
+    Math.round(
+      videoHeight * scale
     );
 
 
-
   context.drawImage(
-
     video,
-
     0,
     0,
-
     canvas.width,
     canvas.height
-
   );
-
 
 
   try {
 
-
     const imageData =
       context.getImageData(
-
         0,
         0,
-
         canvas.width,
         canvas.height
-
       );
-
 
 
     const result =
       jsQR(
-
         imageData.data,
-
         imageData.width,
-
         imageData.height,
-
         {
-
           inversionAttempts:
             'attemptBoth'
-
         }
-
       );
-
 
 
     if (
@@ -1124,63 +557,31 @@ function scanFrame(
       result.data
     ) {
 
-
-      qrFound =
-        true;
-
+      qrFound = true;
 
       handleQRCode(
         result.data
       );
 
-
     }
 
-
   }
-
 
   catch (error) {
 
-
     console.error(
-      'Errore lettura QR:',
+      'Errore QR:',
       error
     );
 
-
   }
-
 
 }
 
 
-
-/************************************************
- *
- * QR TROVATO
- *
- ************************************************/
-
-
-async function handleQRCode(
-  qrValue
-) {
-
-
-  scanning =
-    false;
-
+async function handleQRCode(qrValue) {
 
   stopCamera();
-
-
-
-  console.log(
-    'QR letto:',
-    qrValue
-  );
-
 
 
   setStatus(
@@ -1188,15 +589,12 @@ async function handleQRCode(
   );
 
 
-
   try {
 
-
     const risposta =
-      await cercaConvenzione(
+      await inviaQR(
         qrValue
       );
-
 
 
     if (
@@ -1204,21 +602,14 @@ async function handleQRCode(
       risposta.valido
     ) {
 
-
       mostraRisultato(
-
         risposta.messaggio,
-
         true
-
       );
-
 
     }
 
-
     else {
-
 
       mostraRisultato(
 
@@ -1233,67 +624,39 @@ async function handleQRCode(
 
       );
 
-
     }
-
 
   }
 
-
   catch (error) {
 
-
     console.error(
-      'Errore ricerca:',
       error
     );
 
 
     mostraRisultato(
-
       'Errore di collegamento al motore di ricerca.',
-
       false
-
     );
 
-
   }
-
 
 }
 
 
-
-/************************************************
+/*
+ * QUI LO SCANNER INVIA SOLO IL QR.
  *
- * CHIAMATA A GOOGLE APPS SCRIPT
- *
- ************************************************/
+ * Nessuna Alfa.
+ * Nessuna Beta.
+ * Nessuna ricerca nel frontend.
+ */
 
-
-function cercaConvenzione(
-  qrCode
-) {
-
-
-  /*
-   * Usiamo JSONP perché GitHub Pages
-   * e Apps Script sono su domini diversi.
-   *
-   * Lo scanner invia SOLO:
-   *
-   * qrCode
-   */
-
+function inviaQR(qrCode) {
 
   return new Promise(
-
-    function(
-      resolve,
-      reject
-    ) {
-
+    function(resolve, reject) {
 
       const callbackName =
 
@@ -1304,10 +667,8 @@ function cercaConvenzione(
         '_' +
 
         Math.floor(
-          Math.random() *
-          100000
+          Math.random() * 100000
         );
-
 
 
       const script =
@@ -1316,21 +677,14 @@ function cercaConvenzione(
         );
 
 
-      let timeoutId =
-        null;
+      let timeoutId = null;
 
-
-      let completed =
-        false;
-
+      let completed = false;
 
 
       function cleanup() {
 
-
-        if (
-          timeoutId
-        ) {
+        if (timeoutId) {
 
           clearTimeout(
             timeoutId
@@ -1339,45 +693,33 @@ function cercaConvenzione(
         }
 
 
-        if (
-          script.parentNode
-        ) {
-
+        if (script.parentNode) {
 
           script.parentNode
             .removeChild(
               script
             );
 
-
         }
 
 
         try {
 
-
           delete window[
             callbackName
           ];
 
-
         }
-
 
         catch (_) {
 
-
           window[
             callbackName
-          ] =
-            undefined;
-
+          ] = undefined;
 
         }
 
-
       }
-
 
 
       function finish(
@@ -1385,30 +727,20 @@ function cercaConvenzione(
         value
       ) {
 
-
-        if (
-          completed
-        ) {
+        if (completed) {
 
           return;
 
         }
 
 
-        completed =
-          true;
-
+        completed = true;
 
         cleanup();
 
-
-        fn(
-          value
-        );
-
+        fn(value);
 
       }
-
 
 
       window[
@@ -1416,34 +748,28 @@ function cercaConvenzione(
       ] =
         function(response) {
 
-
           finish(
             resolve,
             response
           );
 
-
         };
-
 
 
       script.onerror =
         function() {
-
 
           finish(
 
             reject,
 
             new Error(
-              'Errore endpoint Apps Script'
+              'Errore Apps Script'
             )
 
           );
 
-
         };
-
 
 
       const params =
@@ -1458,7 +784,6 @@ function cercaConvenzione(
         });
 
 
-
       script.src =
 
         GOOGLE_APPS_SCRIPT_URL +
@@ -1468,19 +793,16 @@ function cercaConvenzione(
         params.toString();
 
 
-
       document.body
         .appendChild(
           script
         );
 
 
-
       timeoutId =
         setTimeout(
 
           function() {
-
 
             finish(
 
@@ -1492,35 +814,22 @@ function cercaConvenzione(
 
             );
 
-
           },
 
           REQUEST_TIMEOUT
 
         );
 
-
     }
-
   );
 
-
 }
-
-
-
-/************************************************
- *
- * RISULTATO
- *
- ************************************************/
 
 
 function mostraRisultato(
   message,
   success
 ) {
-
 
   resultText.textContent =
     message;
@@ -1547,7 +856,6 @@ function mostraRisultato(
     'block';
 
 
-
   setStatus(
 
     success
@@ -1564,82 +872,152 @@ function mostraRisultato(
 
   );
 
+}
+
+
+function handleCameraError(error) {
+
+  const name =
+    error &&
+    error.name
+
+      ? error.name
+
+      : 'Errore sconosciuto';
+
+
+  const message =
+    error &&
+    error.message
+
+      ? error.message
+
+      : '';
+
+
+  if (
+    name === 'NotAllowedError' ||
+    name === 'PermissionDeniedError'
+  ) {
+
+    showCameraError(
+
+      'Permesso fotocamera negato. Consenti la fotocamera nel browser.',
+
+      name +
+      ' - ' +
+      message
+
+    );
+
+    return;
+
+  }
+
+
+  if (
+    name === 'NotFoundError'
+  ) {
+
+    showCameraError(
+      'Nessuna fotocamera trovata.',
+      name
+    );
+
+    return;
+
+  }
+
+
+  showCameraError(
+
+    'Impossibile utilizzare la fotocamera.',
+
+    name +
+    ' - ' +
+    message
+
+  );
 
 }
 
 
+function showCameraError(
+  message,
+  detail
+) {
 
-/************************************************
- *
- * CHIUSURA FOTOCAMERA
- *
- ************************************************/
+  stopCamera();
+
+
+  startPanel.style.display =
+    'flex';
+
+
+  startText.textContent =
+    message;
+
+
+  technical.textContent =
+    'Dettaglio: ' +
+    detail;
+
+
+  technical.style.display =
+    'block';
+
+
+  setStatus(
+    'Fotocamera non disponibile',
+    'error'
+  );
+
+}
 
 
 function stopCamera() {
 
-
-  scanning =
-    false;
+  scanning = false;
 
 
-  if (
-    animationFrame
-  ) {
-
+  if (animationFrame) {
 
     cancelAnimationFrame(
       animationFrame
     );
 
-
-    animationFrame =
-      null;
-
+    animationFrame = null;
 
   }
 
 
-
-  if (
-    stream
-  ) {
-
+  if (stream) {
 
     stream
       .getTracks()
       .forEach(
-
         function(track) {
 
           track.stop();
 
         }
-
       );
 
-
-    stream =
-      null;
-
+    stream = null;
 
   }
-
 
 
   video.srcObject =
     null;
 
-
 }
-
 
 
 function setStatus(
   text,
   type = ''
 ) {
-
 
   statusElement.textContent =
     text;
@@ -1651,10 +1029,7 @@ function setStatus(
   );
 
 
-  if (
-    type
-  ) {
-
+  if (type) {
 
     statusElement
       .classList
@@ -1662,12 +1037,9 @@ function setStatus(
         type
       );
 
-
   }
 
-
 }
-
 
 
 window.addEventListener(
@@ -1681,10 +1053,7 @@ window.addEventListener(
   stopCamera
 );
 
-
 </script>
 
-
 </body>
-
 </html>
