@@ -10,6 +10,7 @@
     .card { background: #222; padding: 20px; border-radius: 12px; max-width: 400px; margin: 0 auto; box-shadow: 0 4px 15px rgba(0,0,0,0.5); }
     input { width: 90%; padding: 12px; margin: 10px 0; border-radius: 6px; border: none; font-size: 16px; box-sizing: border-box; }
     button { width: 100%; padding: 14px; background: #4CAF50; color: white; font-size: 16px; font-weight: bold; border: none; border-radius: 6px; cursor: pointer; margin-top: 10px; }
+    .btn-logout { background: #dc2626; padding: 8px 15px; margin-top: 10px; border: none; border-radius: 4px; color: white; cursor: pointer; font-size: 14px; width: auto; }
     #panel-scanner { display: none; }
     #reader { width: 100%; border-radius: 8px; overflow: hidden; background: black; margin-top: 20px; }
     #risultato { margin-top: 20px; padding: 15px; border-radius: 8px; font-size: 18px; font-weight: bold; display: none; }
@@ -32,18 +33,34 @@
   <div id="panel-scanner" class="card">
     <h2>Scanner Sconti</h2>
     <div id="dati-utente" style="color: #aaa; font-size: 14px; margin-bottom: 10px;"></div>
+    <button onclick="faiLogout()" class="btn-logout">Esci (Logout)</button>
+    
     <div id="reader"></div>
     <div id="risultato"></div>
+    
     <button onclick="avviaScanner()" style="background: #3b82f6; display: none;" id="btn-riavvia">Scansiona un altro QR</button>
   </div>
 
   <script>
-    // INSERISCI QUI L'URL FORNITO DA GOOGLE APPS SCRIPT
-    const API_URL = "https://script.google.com/macros/s/AKfycbwQhuwLs3slZGroHHZtiFJrVL3SPUVtZH0nnOZIlg6nF78VhvWv3vpPnA__GLBMGHGt/exec";
+    // IL TUO URL GOOGLE APPS SCRIPT COLLEGATO
+    const API_URL = "https://script.google.com/macros/s/AKfycbxBEQu2TsvE1e9TMWhnhtr89nB8q_0fntCNX9aAbSJJSjN7jWYLe5-sGb9pYtzbU5w/exec";
     
     let html5QrcodeScanner;
 
-    // --- FUNZIONE 1: LOGIN ---
+    // CONTROLLO ALL'AVVIO: L'utente è già loggato?
+    window.onload = function() {
+      const associazioneSalvata = localStorage.getItem('userAssociazione');
+      const nomeSalvato = localStorage.getItem('userNome');
+      
+      if (associazioneSalvata && nomeSalvato) {
+        document.getElementById('panel-login').style.display = 'none';
+        document.getElementById('panel-scanner').style.display = 'block';
+        document.getElementById('dati-utente').innerText = "Tesserato: " + nomeSalvato + " (" + associazioneSalvata + ")";
+        avviaScanner();
+      }
+    };
+
+    // LOGICA DI LOGIN
     async function faiLogin() {
       const cf = document.getElementById('cf').value;
       const mat = document.getElementById('mat').value;
@@ -52,7 +69,6 @@
       if(!cf || !mat) { msgBox.innerText = "Compila tutti i campi."; return; }
       msgBox.innerText = "Connessione al server...";
 
-      // Struttura dati per evitare errori CORS
       const formData = new URLSearchParams();
       formData.append('azione', 'login');
       formData.append('cf', cf);
@@ -64,6 +80,7 @@
 
         if (dati.successo) {
           localStorage.setItem('userAssociazione', dati.associazione);
+          localStorage.setItem('userNome', dati.nome);
           
           document.getElementById('panel-login').style.display = 'none';
           document.getElementById('panel-scanner').style.display = 'block';
@@ -78,7 +95,13 @@
       }
     }
 
-    // --- FUNZIONE 2: AVVIO FOTOCAMERA ---
+    // LOGICA DI LOGOUT
+    function faiLogout() {
+      localStorage.clear();
+      window.location.reload();
+    }
+
+    // AVVIO FOTOCAMERA
     function avviaScanner() {
       document.getElementById('risultato').style.display = 'none';
       document.getElementById('btn-riavvia').style.display = 'none';
@@ -87,14 +110,14 @@
       html5QrcodeScanner.render(onScanSuccess, function(){});
     }
 
-    // --- FUNZIONE 3: INVIO QR CODE AL SERVER ---
+    // INVIO QR CODE AL SERVER
     async function onScanSuccess(codiceLetto) {
       html5QrcodeScanner.clear(); 
       
       const divRisultato = document.getElementById('risultato');
       divRisultato.style.display = 'block';
       divRisultato.className = "";
-      divRisultato.innerText = "Verifica convenzione...";
+      divRisultato.innerText = "Verifica convenzione in corso...";
 
       const associazione = localStorage.getItem('userAssociazione');
 
