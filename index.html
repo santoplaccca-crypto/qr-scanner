@@ -1,66 +1,10 @@
-<!DOCTYPE html>
-<html lang="it">
-<head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
-  <title>App Sconti Universitari</title>
-  <script src="https://unpkg.com/html5-qrcode" type="text/javascript"></script>
-  <style>
-    body { font-family: Arial, sans-serif; background: #111; color: white; margin: 0; padding: 20px; text-align: center; }
-    .card { background: #222; padding: 20px; border-radius: 12px; max-width: 400px; margin: 0 auto; box-shadow: 0 4px 15px rgba(0,0,0,0.5); }
-    input { width: 90%; padding: 12px; margin: 10px 0; border-radius: 6px; border: none; font-size: 16px; box-sizing: border-box; }
-    button { width: 100%; padding: 14px; background: #4CAF50; color: white; font-size: 16px; font-weight: bold; border: none; border-radius: 6px; cursor: pointer; margin-top: 10px; }
-    .btn-logout { background: #dc2626; padding: 8px 15px; margin-top: 10px; border: none; border-radius: 4px; color: white; cursor: pointer; font-size: 14px; width: auto; }
-    #panel-scanner { display: none; }
-    #reader { width: 100%; border-radius: 8px; overflow: hidden; background: black; margin-top: 20px; }
-    #risultato { margin-top: 20px; padding: 15px; border-radius: 8px; font-size: 18px; font-weight: bold; display: none; }
-    .successo { background: #166534; color: white; border: 2px solid #22c55e; }
-    .errore { background: #991b1b; color: white; border: 2px solid #ef4444; }
-  </style>
-</head>
-<body>
-
-  <!-- PANNELLO LOGIN -->
-  <div id="panel-login" class="card">
-    <h2>Accesso Tesserati</h2>
-    <input type="text" id="cf" placeholder="Codice Fiscale">
-    <input type="text" id="mat" placeholder="Matricola">
-    <button onclick="faiLogin()">Accedi</button>
-    <div id="msg-login" style="color: #ffaa00; margin-top: 15px;"></div>
-  </div>
-
-  <!-- PANNELLO SCANNER -->
-  <div id="panel-scanner" class="card">
-    <h2>Scanner Sconti</h2>
-    <div id="dati-utente" style="color: #aaa; font-size: 14px; margin-bottom: 10px;"></div>
-    <button onclick="faiLogout()" class="btn-logout">Esci (Logout)</button>
-    
-    <div id="reader"></div>
-    <div id="risultato"></div>
-    
-    <button onclick="avviaScanner()" style="background: #3b82f6; display: none;" id="btn-riavvia">Scansiona un altro QR</button>
-  </div>
-
-  <script>
-    // IL TUO URL GOOGLE APPS SCRIPT COLLEGATO
-    const API_URL = "https://script.google.com/macros/s/AKfycbxBEQu2TsvE1e9TMWhnhtr89nB8q_0fntCNX9aAbSJJSjN7jWYLe5-sGb9pYtzbU5w/exec";
+<script>
+    // INSERISCI QUI IL NUOVO URL CHE HAI APPENA COPIATO
+    const API_URL = "https://script.google.com/macros/s/AKfycbwcdhgx7mwoN-9s-x0xDZDhXuPbvizEkbijbKbxr3j_jQqwHhc0LEKMrfMrV2IMDkw/exec";
     
     let html5QrcodeScanner;
 
-    // CONTROLLO ALL'AVVIO: L'utente è già loggato?
-    window.onload = function() {
-      const associazioneSalvata = localStorage.getItem('userAssociazione');
-      const nomeSalvato = localStorage.getItem('userNome');
-      
-      if (associazioneSalvata && nomeSalvato) {
-        document.getElementById('panel-login').style.display = 'none';
-        document.getElementById('panel-scanner').style.display = 'block';
-        document.getElementById('dati-utente').innerText = "Tesserato: " + nomeSalvato + " (" + associazioneSalvata + ")";
-        avviaScanner();
-      }
-    };
-
-    // LOGICA DI LOGIN
+    // --- FUNZIONE 1: LOGIN ---
     async function faiLogin() {
       const cf = document.getElementById('cf').value;
       const mat = document.getElementById('mat').value;
@@ -69,18 +13,15 @@
       if(!cf || !mat) { msgBox.innerText = "Compila tutti i campi."; return; }
       msgBox.innerText = "Connessione al server...";
 
-      const formData = new URLSearchParams();
-      formData.append('azione', 'login');
-      formData.append('cf', cf);
-      formData.append('mat', mat);
+      // Creiamo l'URL con i parametri GET
+      const urlConParametri = API_URL + "?azione=login&cf=" + encodeURIComponent(cf) + "&mat=" + encodeURIComponent(mat);
 
       try {
-        const response = await fetch(API_URL, { method: 'POST', body: formData });
+        const response = await fetch(urlConParametri, { method: 'GET' });
         const dati = await response.json();
 
         if (dati.successo) {
           localStorage.setItem('userAssociazione', dati.associazione);
-          localStorage.setItem('userNome', dati.nome);
           
           document.getElementById('panel-login').style.display = 'none';
           document.getElementById('panel-scanner').style.display = 'block';
@@ -91,17 +32,12 @@
           msgBox.innerText = dati.messaggio;
         }
       } catch (error) {
+        console.error(error);
         msgBox.innerText = "Errore di connessione a Google.";
       }
     }
 
-    // LOGICA DI LOGOUT
-    function faiLogout() {
-      localStorage.clear();
-      window.location.reload();
-    }
-
-    // AVVIO FOTOCAMERA
+    // --- FUNZIONE 2: AVVIO FOTOCAMERA ---
     function avviaScanner() {
       document.getElementById('risultato').style.display = 'none';
       document.getElementById('btn-riavvia').style.display = 'none';
@@ -110,24 +46,22 @@
       html5QrcodeScanner.render(onScanSuccess, function(){});
     }
 
-    // INVIO QR CODE AL SERVER
+    // --- FUNZIONE 3: INVIO QR CODE AL SERVER ---
     async function onScanSuccess(codiceLetto) {
       html5QrcodeScanner.clear(); 
       
       const divRisultato = document.getElementById('risultato');
       divRisultato.style.display = 'block';
       divRisultato.className = "";
-      divRisultato.innerText = "Verifica convenzione in corso...";
+      divRisultato.innerText = "Verifica convenzione...";
 
       const associazione = localStorage.getItem('userAssociazione');
 
-      const formData = new URLSearchParams();
-      formData.append('azione', 'scan');
-      formData.append('qrCode', codiceLetto);
-      formData.append('associazione', associazione);
+      // Creiamo l'URL con i parametri GET per lo scanner
+      const urlConParametri = API_URL + "?azione=scan&qrCode=" + encodeURIComponent(codiceLetto) + "&associazione=" + encodeURIComponent(associazione);
 
       try {
-        const response = await fetch(API_URL, { method: 'POST', body: formData });
+        const response = await fetch(urlConParametri, { method: 'GET' });
         const dati = await response.json();
 
         if (dati.successo) {
@@ -139,11 +73,10 @@
         }
         document.getElementById('btn-riavvia').style.display = 'block';
       } catch (error) {
+        console.error(error);
         divRisultato.className = "errore";
         divRisultato.innerHTML = "Errore di comunicazione col database.";
         document.getElementById('btn-riavvia').style.display = 'block';
       }
     }
   </script>
-</body>
-</html>
