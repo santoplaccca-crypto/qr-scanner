@@ -1,1 +1,885 @@
+<!DOCTYPE html>
+<html lang="it">
+<head>
+  <meta charset="UTF-8">
 
+  <meta
+    name="viewport"
+    content="width=device-width, initial-scale=1, viewport-fit=cover"
+  >
+
+  <title>QR Scanner</title>
+
+  <script src="https://cdn.jsdelivr.net/npm/jsqr@1.4.0/dist/jsQR.min.js"></script>
+
+  <style>
+    * {
+      box-sizing: border-box;
+      -webkit-tap-highlight-color: transparent;
+    }
+
+    html,
+    body {
+      margin: 0;
+      padding: 0;
+      width: 100%;
+      height: 100%;
+      background: #000;
+      font-family: Arial, sans-serif;
+      overflow: hidden;
+    }
+
+    #app {
+      position: relative;
+      width: 100%;
+      height: 100vh;
+      height: 100dvh;
+      background: #000;
+    }
+
+    #video {
+      position: absolute;
+      inset: 0;
+      width: 100%;
+      height: 100%;
+      object-fit: cover;
+      background: #000;
+    }
+
+    #canvas {
+      display: none;
+    }
+
+    #scannerBox {
+      position: absolute;
+
+      width: min(72vw, 320px);
+      height: min(72vw, 320px);
+
+      top: 50%;
+      left: 50%;
+
+      transform: translate(-50%, -50%);
+
+      border: 3px solid white;
+      border-radius: 24px;
+
+      box-shadow:
+        0 0 0 9999px rgba(0, 0, 0, 0.35);
+
+      pointer-events: none;
+    }
+
+    #status {
+      position: absolute;
+
+      top: calc(env(safe-area-inset-top) + 20px);
+      left: 50%;
+
+      transform: translateX(-50%);
+
+      max-width: 92%;
+
+      padding: 12px 18px;
+
+      border-radius: 30px;
+
+      background: rgba(0,0,0,.75);
+      color: white;
+
+      text-align: center;
+      font-size: 15px;
+
+      z-index: 10;
+    }
+
+    #permissionPanel {
+      position: absolute;
+      inset: 0;
+
+      display: flex;
+      flex-direction: column;
+
+      justify-content: center;
+      align-items: center;
+
+      padding: 30px;
+
+      background: rgba(0,0,0,.9);
+      color: white;
+
+      text-align: center;
+
+      z-index: 20;
+    }
+
+    #permissionPanel h2 {
+      margin-bottom: 10px;
+    }
+
+    #permissionPanel p {
+      max-width: 400px;
+      line-height: 1.5;
+      margin-bottom: 24px;
+    }
+
+    button {
+      border: 0;
+
+      border-radius: 999px;
+
+      padding: 16px 25px;
+
+      font-size: 17px;
+      font-weight: bold;
+
+      cursor: pointer;
+
+      background: white;
+      color: black;
+    }
+
+    #retryButton {
+      display: none;
+
+      position: absolute;
+
+      bottom: calc(env(safe-area-inset-bottom) + 25px);
+      left: 50%;
+
+      transform: translateX(-50%);
+
+      z-index: 10;
+    }
+
+    #technical {
+      margin-top: 15px;
+
+      font-size: 11px;
+      font-family: monospace;
+
+      opacity: .75;
+
+      overflow-wrap: anywhere;
+
+      max-width: 95%;
+    }
+
+    .success {
+      background: rgba(22,101,52,.92) !important;
+    }
+
+    .error {
+      background: rgba(153,27,27,.92) !important;
+    }
+  </style>
+</head>
+
+<body>
+
+<div id="app">
+
+  <video
+    id="video"
+    autoplay
+    muted
+    playsinline>
+  </video>
+
+  <canvas id="canvas"></canvas>
+
+  <div id="scannerBox"></div>
+
+  <div id="status">
+    Preparazione fotocamera...
+  </div>
+
+  <div id="permissionPanel">
+
+    <h2>Attivazione fotocamera</h2>
+
+    <p id="permissionText">
+      L'app richiederà l'accesso alla fotocamera
+      per leggere il QR Code.
+    </p>
+
+    <button id="permissionButton">
+      Attiva fotocamera
+    </button>
+
+    <div id="technical"></div>
+
+  </div>
+
+  <button id="retryButton">
+    Scansiona un altro QR
+  </button>
+
+</div>
+
+
+<script>
+
+  /************************************************
+   * URL GOOGLE APPS SCRIPT
+   *
+   * LO INSERIREMO SUCCESSIVAMENTE
+   ************************************************/
+
+  const GOOGLE_APPS_SCRIPT_URL =
+    'INSERIRE_URL_APPS_SCRIPT_QUI';
+
+
+  /************************************************
+   * ELEMENTI
+   ************************************************/
+
+  const video =
+    document.getElementById('video');
+
+  const canvas =
+    document.getElementById('canvas');
+
+  const context =
+    canvas.getContext('2d', {
+      willReadFrequently: true
+    });
+
+  const statusElement =
+    document.getElementById('status');
+
+  const permissionPanel =
+    document.getElementById('permissionPanel');
+
+  const permissionButton =
+    document.getElementById('permissionButton');
+
+  const permissionText =
+    document.getElementById('permissionText');
+
+  const technical =
+    document.getElementById('technical');
+
+  const retryButton =
+    document.getElementById('retryButton');
+
+
+  /************************************************
+   * STATO APP
+   ************************************************/
+
+  let stream = null;
+
+  let scanning = false;
+
+  let qrFound = false;
+
+  let animationFrame = null;
+
+  let lastScan = 0;
+
+  const SCAN_INTERVAL = 120;
+
+
+  /************************************************
+   * AVVIO
+   ************************************************/
+
+  window.addEventListener(
+    'load',
+    function() {
+
+      /*
+       * Proviamo subito a far comparire
+       * la richiesta della fotocamera.
+       */
+
+      requestCamera();
+
+    }
+  );
+
+
+  permissionButton.addEventListener(
+    'click',
+    function() {
+
+      technical.textContent = '';
+
+      requestCamera();
+
+    }
+  );
+
+
+  retryButton.addEventListener(
+    'click',
+    function() {
+
+      retryButton.style.display =
+        'none';
+
+      requestCamera();
+
+    }
+  );
+
+
+  /************************************************
+   * FOTOCAMERA
+   ************************************************/
+
+  async function requestCamera() {
+
+    stopCamera();
+
+    qrFound = false;
+
+    setStatus(
+      'Richiesta accesso alla fotocamera...'
+    );
+
+
+    if (!window.isSecureContext) {
+
+      showCameraError(
+        'La pagina deve essere aperta tramite HTTPS.',
+        'SecureContext = false'
+      );
+
+      return;
+
+    }
+
+
+    if (
+      !navigator.mediaDevices ||
+      !navigator.mediaDevices.getUserMedia
+    ) {
+
+      showCameraError(
+        'Questo browser non supporta l’accesso alla fotocamera.',
+        'getUserMedia non disponibile'
+      );
+
+      return;
+
+    }
+
+
+    try {
+
+      stream =
+        await navigator.mediaDevices.getUserMedia({
+
+          audio: false,
+
+          video: {
+
+            facingMode: {
+              ideal: 'environment'
+            },
+
+            width: {
+              ideal: 1280
+            },
+
+            height: {
+              ideal: 720
+            }
+
+          }
+
+        });
+
+
+      video.srcObject =
+        stream;
+
+
+      await video.play();
+
+
+      permissionPanel.style.display =
+        'none';
+
+
+      setStatus(
+        'Inquadra un QR Code'
+      );
+
+
+      scanning = true;
+
+      lastScan = 0;
+
+
+      animationFrame =
+        requestAnimationFrame(
+          scanFrame
+        );
+
+
+    } catch (error) {
+
+      console.error(
+        error
+      );
+
+
+      handleCameraError(
+        error
+      );
+
+    }
+
+  }
+
+
+  /************************************************
+   * ERRORI FOTOCAMERA
+   ************************************************/
+
+  function handleCameraError(error) {
+
+    const name =
+      error && error.name
+        ? error.name
+        : 'Errore sconosciuto';
+
+
+    const message =
+      error && error.message
+        ? error.message
+        : '';
+
+
+    if (
+      name === 'NotAllowedError' ||
+      name === 'PermissionDeniedError'
+    ) {
+
+      showCameraError(
+        'Accesso alla fotocamera non consentito. Premi Attiva fotocamera e scegli Consenti.',
+        name + ' - ' + message
+      );
+
+      return;
+
+    }
+
+
+    if (
+      name === 'NotFoundError' ||
+      name === 'DevicesNotFoundError'
+    ) {
+
+      showCameraError(
+        'Nessuna fotocamera trovata.',
+        name
+      );
+
+      return;
+
+    }
+
+
+    if (
+      name === 'NotReadableError'
+    ) {
+
+      showCameraError(
+        'La fotocamera potrebbe essere utilizzata da un’altra applicazione.',
+        name + ' - ' + message
+      );
+
+      return;
+
+    }
+
+
+    showCameraError(
+      'Impossibile aprire la fotocamera.',
+      name + ' - ' + message
+    );
+
+  }
+
+
+  function showCameraError(
+    message,
+    detail
+  ) {
+
+    permissionPanel.style.display =
+      'flex';
+
+
+    permissionText.textContent =
+      message;
+
+
+    technical.textContent =
+      'Dettaglio: ' + detail;
+
+
+    setStatus(
+      'Fotocamera non disponibile',
+      'error'
+    );
+
+  }
+
+
+  /************************************************
+   * SCANSIONE QR
+   ************************************************/
+
+  function scanFrame(timestamp) {
+
+    if (
+      !scanning ||
+      qrFound
+    ) {
+
+      return;
+
+    }
+
+
+    animationFrame =
+      requestAnimationFrame(
+        scanFrame
+      );
+
+
+    if (
+      timestamp - lastScan <
+      SCAN_INTERVAL
+    ) {
+
+      return;
+
+    }
+
+
+    lastScan =
+      timestamp;
+
+
+    if (
+      video.readyState <
+      video.HAVE_ENOUGH_DATA
+    ) {
+
+      return;
+
+    }
+
+
+    const width =
+      video.videoWidth;
+
+
+    const height =
+      video.videoHeight;
+
+
+    if (
+      !width ||
+      !height
+    ) {
+
+      return;
+
+    }
+
+
+    /*
+     * Riduciamo la risoluzione
+     * per velocizzare la scansione.
+     */
+
+    const maxWidth =
+      960;
+
+
+    const scale =
+      Math.min(
+        1,
+        maxWidth / width
+      );
+
+
+    canvas.width =
+      Math.round(
+        width * scale
+      );
+
+
+    canvas.height =
+      Math.round(
+        height * scale
+      );
+
+
+    context.drawImage(
+      video,
+      0,
+      0,
+      canvas.width,
+      canvas.height
+    );
+
+
+    try {
+
+      const imageData =
+        context.getImageData(
+          0,
+          0,
+          canvas.width,
+          canvas.height
+        );
+
+
+      const result =
+        jsQR(
+          imageData.data,
+          imageData.width,
+          imageData.height,
+          {
+            inversionAttempts:
+              'attemptBoth'
+          }
+        );
+
+
+      if (
+        result &&
+        result.data
+      ) {
+
+        qrFound = true;
+
+        handleQRCode(
+          result.data
+        );
+
+      }
+
+    } catch (error) {
+
+      console.error(
+        'Errore scansione:',
+        error
+      );
+
+    }
+
+  }
+
+
+  /************************************************
+   * QR TROVATO
+   ************************************************/
+
+  async function handleQRCode(qrValue) {
+
+    scanning = false;
+
+    stopCamera();
+
+
+    console.log(
+      'QR:',
+      qrValue
+    );
+
+
+    /*
+     * Per ora, se Apps Script
+     * non è ancora collegato,
+     * mostriamo semplicemente il QR.
+     */
+
+    if (
+      !GOOGLE_APPS_SCRIPT_URL ||
+      GOOGLE_APPS_SCRIPT_URL ===
+      'INSERIRE_URL_APPS_SCRIPT_QUI'
+    ) {
+
+      setStatus(
+        'QR letto: ' + qrValue,
+        'success'
+      );
+
+
+      retryButton.style.display =
+        'block';
+
+
+      return;
+
+    }
+
+
+    await sendToGoogle(
+      qrValue
+    );
+
+  }
+
+
+  /************************************************
+   * INVIO A GOOGLE APPS SCRIPT
+   ************************************************/
+
+  async function sendToGoogle(qrValue) {
+
+    setStatus(
+      'Invio QR...'
+    );
+
+
+    try {
+
+      const separator =
+        GOOGLE_APPS_SCRIPT_URL.includes('?')
+          ? '&'
+          : '?';
+
+
+      const destination =
+        GOOGLE_APPS_SCRIPT_URL +
+        separator +
+        'qr=' +
+        encodeURIComponent(qrValue);
+
+
+      /*
+       * Con Apps Script usiamo no-cors.
+       * La richiesta viene inviata anche
+       * se il browser non rende leggibile
+       * la risposta.
+       */
+
+      await fetch(
+        destination,
+        {
+          method: 'GET',
+          mode: 'no-cors',
+          cache: 'no-store'
+        }
+      );
+
+
+      setStatus(
+        'QR acquisito e inviato',
+        'success'
+      );
+
+
+    } catch (error) {
+
+      console.error(
+        error
+      );
+
+
+      setStatus(
+        'QR acquisito ma errore durante l’invio',
+        'error'
+      );
+
+    }
+
+
+    retryButton.style.display =
+      'block';
+
+  }
+
+
+  /************************************************
+   * UTILITY
+   ************************************************/
+
+  function stopCamera() {
+
+    scanning = false;
+
+
+    if (animationFrame) {
+
+      cancelAnimationFrame(
+        animationFrame
+      );
+
+
+      animationFrame =
+        null;
+
+    }
+
+
+    if (stream) {
+
+      stream
+        .getTracks()
+        .forEach(
+          function(track) {
+
+            track.stop();
+
+          }
+        );
+
+
+      stream =
+        null;
+
+    }
+
+
+    video.srcObject =
+      null;
+
+  }
+
+
+  function setStatus(
+    text,
+    type = ''
+  ) {
+
+    statusElement.textContent =
+      text;
+
+
+    statusElement.classList.remove(
+      'success',
+      'error'
+    );
+
+
+    if (type) {
+
+      statusElement.classList.add(
+        type
+      );
+
+    }
+
+  }
+
+
+  window.addEventListener(
+    'pagehide',
+    stopCamera
+  );
+
+</script>
+
+</body>
+</html>
