@@ -240,7 +240,7 @@
   // CONFIGURAZIONE
   // =======================================================
   const GOOGLE_APPS_SCRIPT_URL =
-    'https://script.google.com/macros/s/AKfycbz5v0qnTUG_ELqnBv3q85sERSvhp0KaPv4LwH8v6ggsXoCCZFqa_SV4LqjkQ5jAaHBd/exec';
+    'https://script.google.com/macros/s/AKfycbwSy-g8yaxPXd4Xlmo__EtZJyK8i65ZFA0SLj5Fa5JAJpFGMPy9QfgK5PpC4cEnGoLB/exec';
 
   const REQUEST_TIMEOUT = 15000;
   const VALIDITA_VERIFICA_SECONDI = 20; // dopo quanti secondi la schermata di verifica si chiude da sola
@@ -252,39 +252,40 @@
   let matricolaUtente = null;
 
   /**
-   * Chiama il backend Apps Script via JSONP (tag <script>).
-   * "action": 'login' | 'quickLogin' | 'scan'
+   * Chiama il backend Apps Script con una richiesta POST vera (fetch),
+   * NON più con un tag <script> (JSONP/GET).
+   *
+   * Perché: le richieste GET possono essere messe in cache dal dispositivo
+   * o dalla rete (es. "Risparmio dati" di Chrome Android), facendo arrivare
+   * risposte vecchie invece che quelle reali del server. Le richieste POST
+   * non vengono MAI messe in cache dai browser: risolve alla radice sia i
+   * fallimenti di login ripetuto sia i gettoni di accesso rapido non validi.
+   *
+   * IMPORTANTE: non aggiungere manualmente un header "Content-Type" qui.
+   * Senza headers espliciti, il browser invia il corpo come testo semplice,
+   * che non richiede una richiesta preflight CORS (che Apps Script non è in
+   * grado di gestire). Aggiungere "Content-Type: application/json" a mano
+   * romperebbe la chiamata.
    */
-  function chiamaAPI(action, extraParams) {
-    return new Promise(function (resolve, reject) {
-      const callbackName = '__cb_' + Date.now() + '_' + Math.floor(Math.random() * 100000);
-      const script = document.createElement('script');
-      let timeoutId = null;
-      let completed = false;
+  async function chiamaAPI(action, extraParams) {
+    const controller = new AbortController();
+    const timeoutId = setTimeout(function () { controller.abort(); }, REQUEST_TIMEOUT);
 
-      function cleanup() {
-        if (timeoutId) clearTimeout(timeoutId);
-        if (script.parentNode) script.parentNode.removeChild(script);
-        try { delete window[callbackName]; } catch (_) { window[callbackName] = undefined; }
-      }
-      function finish(fn, value) {
-        if (completed) return;
-        completed = true;
-        cleanup();
-        fn(value);
+    try {
+      const risposta = await fetch(GOOGLE_APPS_SCRIPT_URL, {
+        method: 'POST',
+        body: JSON.stringify(Object.assign({ action: action }, extraParams)),
+        signal: controller.signal
+      });
+
+      if (!risposta.ok) {
+        throw new Error('Errore HTTP: ' + risposta.status);
       }
 
-      window[callbackName] = function (response) { finish(resolve, response); };
-      script.onerror = function () { finish(reject, new Error('Errore di connessione al server')); };
-
-      const tuttiParams = Object.assign({ action: action, callback: callbackName }, extraParams);
-      script.src = GOOGLE_APPS_SCRIPT_URL + '?' + new URLSearchParams(tuttiParams).toString();
-      document.body.appendChild(script);
-
-      timeoutId = setTimeout(function () {
-        finish(reject, new Error('Timeout: il server non ha risposto'));
-      }, REQUEST_TIMEOUT);
-    });
+      return await risposta.json();
+    } finally {
+      clearTimeout(timeoutId);
+    }
   }
 
   // ===================== LOGIN =====================
