@@ -38,6 +38,12 @@
       border: 1px solid #ccc; border-radius: 6px; font-size: 15px;
     }
 
+    .checkbox-row {
+      display: flex; align-items: center; gap: 8px;
+      font-size: 13px; color: #555; margin: 10px 0 4px;
+    }
+    .checkbox-row input { width: auto; margin: 0; }
+
     .login-container button {
       width: 100%; padding: 12px; margin-top: 8px;
       background-color: #4CAF50; color: white; border: none;
@@ -78,20 +84,11 @@
       text-align: center; font-size: 15px; z-index: 10;
     }
 
-    #welcomeBar {
-      position: absolute;
-      top: calc(env(safe-area-inset-top) + 68px);
-      left: 50%; transform: translateX(-50%);
-      width: min(92%, 500px);
-      color: white; opacity: 0.8;
-      text-align: center; font-size: 13px; z-index: 10;
-    }
-
     #startPanel {
       position: absolute; inset: 0;
       display: flex; flex-direction: column; justify-content: center; align-items: center;
-      padding: 30px; background: rgba(0, 0, 0, 0.9); color: white;
-      text-align: center; z-index: 20;
+      padding: 30px; background: rgba(0, 0, 0, 0.92); color: white;
+      text-align: center; z-index: 20; overflow-y: auto;
     }
 
     #startPanel h1 { margin: 0 0 12px; }
@@ -105,21 +102,68 @@
 
     #technical { display: none; margin-top: 15px; font-family: monospace; font-size: 11px; opacity: 0.8; overflow-wrap: anywhere; }
 
+    /* ===== TESSERA VIRTUALE (sotto il pulsante di scansione) ===== */
+    #tesseraVirtuale {
+      margin-top: 26px;
+      width: 100%;
+      max-width: 320px;
+      background: rgba(255,255,255,0.08);
+      border: 1px solid rgba(255,255,255,0.35);
+      border-radius: 16px;
+      padding: 16px 18px;
+      text-align: left;
+    }
+    .tessera-header {
+      font-size: 11px;
+      letter-spacing: 1.5px;
+      opacity: 0.6;
+      margin-bottom: 6px;
+    }
+    .tessera-nome {
+      font-size: 19px;
+      font-weight: bold;
+      margin-bottom: 10px;
+    }
+    .tessera-riga {
+      display: flex; justify-content: space-between;
+      font-size: 13px; padding: 6px 0;
+      border-top: 1px solid rgba(255,255,255,0.12);
+    }
+    .tessera-riga span:first-child { opacity: 0.6; }
+
+    /* ===== SCHERMATA DI VERIFICA (dopo la scansione) ===== */
     #resultPanel {
-      display: none; position: absolute; left: 50%;
-      bottom: calc(env(safe-area-inset-bottom) + 25px);
-      transform: translateX(-50%); width: min(92%, 500px);
-      padding: 20px; border-radius: 20px; color: white; text-align: center; z-index: 15;
+      display: none; position: absolute; left: 50%; top: 50%;
+      transform: translate(-50%, -50%); width: min(92%, 420px);
+      padding: 24px; border-radius: 20px; color: white; text-align: center; z-index: 15;
     }
 
-    #resultText { margin-bottom: 16px; font-size: 18px; line-height: 1.4; overflow-wrap: anywhere; }
+    #resultBadge { font-size: 20px; font-weight: bold; margin-bottom: 10px; }
+    #resultShopName { font-size: 19px; font-weight: bold; overflow-wrap: anywhere; }
+    #resultDiscount { font-size: 15px; opacity: 0.9; margin-top: 2px; }
 
-    .success { background: rgba(22, 101, 52, 0.94) !important; }
-    .error { background: rgba(153, 27, 27, 0.94) !important; }
+    .resultDivider { border: none; border-top: 1px solid rgba(255,255,255,0.25); margin: 14px 0; }
+
+    #resultStudent { font-size: 15px; font-weight: bold; }
+    #resultAssoc { font-size: 13px; opacity: 0.85; margin-top: 2px; }
+
+    #liveClock { font-family: monospace; font-size: 17px; margin-top: 16px; letter-spacing: 0.5px; }
+    #countdownLabel { font-size: 12px; opacity: 0.8; margin-top: 4px; }
+
+    #timerBarContainer {
+      width: 100%; height: 6px; background: rgba(255,255,255,0.25);
+      border-radius: 3px; margin-top: 8px; overflow: hidden;
+    }
+    #timerBar { height: 100%; background: white; width: 100%; transition: width 1s linear; }
+
+    #resultPanel button { margin-top: 20px; }
+
+    .success { background: rgba(22, 101, 52, 0.96) !important; }
+    .error { background: rgba(153, 27, 27, 0.96) !important; }
 
     #logoutLink {
       position: absolute; bottom: calc(env(safe-area-inset-bottom) + 10px); left: 10px;
-      color: white; opacity: 0.6; font-size: 12px; z-index: 15; text-decoration: underline; cursor: pointer;
+      color: white; opacity: 0.6; font-size: 12px; z-index: 25; text-decoration: underline; cursor: pointer;
     }
   </style>
 </head>
@@ -132,6 +176,12 @@
       <h2>Accesso Tesserati</h2>
       <input type="text" id="codiceFiscale" placeholder="Codice Fiscale" required>
       <input type="text" id="matricola" placeholder="Numero Matricola" required>
+
+      <label class="checkbox-row">
+        <input type="checkbox" id="ricordami">
+        Ricorda i miei dati su questo dispositivo (accesso rapido)
+      </label>
+
       <button id="loginButton">Accedi</button>
       <div id="loginMessage"></div>
     </div>
@@ -145,17 +195,38 @@
     <div id="scannerBox"></div>
 
     <div id="status">Pronto</div>
-    <div id="welcomeBar"></div>
 
     <div id="startPanel">
       <h1>Scanner QR</h1>
       <p id="startText">Premi il pulsante e inquadra il QR Code.</p>
       <button id="startButton">Attiva fotocamera</button>
+
+      <!-- Tessera virtuale del socio -->
+      <div id="tesseraVirtuale">
+        <div class="tessera-header">TESSERA SOCIO</div>
+        <div class="tessera-nome" id="tesseraNome"></div>
+        <div class="tessera-riga"><span>Matricola</span><span id="tesseraMatricola"></span></div>
+        <div class="tessera-riga"><span>Associazione</span><span id="tesseraAssociazione"></span></div>
+      </div>
+
       <div id="technical"></div>
     </div>
 
+    <!-- Schermata di verifica: mostrata sopra il video dopo la scansione -->
     <div id="resultPanel">
-      <div id="resultText"></div>
+      <div id="resultBadge"></div>
+      <div id="resultShopName"></div>
+      <div id="resultDiscount"></div>
+
+      <hr class="resultDivider">
+
+      <div id="resultStudent"></div>
+      <div id="resultAssoc"></div>
+
+      <div id="liveClock"></div>
+      <div id="countdownLabel"></div>
+      <div id="timerBarContainer"><div id="timerBar"></div></div>
+
       <button id="retryButton">Scansiona un altro QR</button>
     </div>
 
@@ -166,28 +237,26 @@
 <script>
 
   // =======================================================
-  // CONFIGURAZIONE: URL del backend Apps Script unificato
-  // (quello con Codice.gs / appsscript.json che gestisce login+scan)
+  // CONFIGURAZIONE
   // =======================================================
   const GOOGLE_APPS_SCRIPT_URL =
-    'https://script.google.com/macros/s/AKfycbzuh_sRTvx3fLn94xla1OY2-K05E6JiNZ2NCwQfRCpi_Pe75Bniz0IDPUglD9lZiTA/exec';
+    'https://script.google.com/macros/s/AKfycbz5v0qnTUG_ELqnBv3q85sERSvhp0KaPv4LwH8v6ggsXoCCZFqa_SV4LqjkQ5jAaHBd/exec';
 
   const REQUEST_TIMEOUT = 15000;
+  const VALIDITA_VERIFICA_SECONDI = 20; // dopo quanti secondi la schermata di verifica si chiude da sola
 
-  // Dati dell'utente loggato, tenuti in memoria: essendo login e scanner
-  // sulla STESSA pagina/dominio, non serve localStorage né passare dati via URL.
+  // Dati dell'utente loggato, tenuti in memoria (stessa pagina/dominio per login e scanner)
   let associazioneUtente = null;
   let nomeUtente = null;
   let cfUtente = null;
+  let matricolaUtente = null;
 
   /**
-   * Chiama il backend Apps Script via JSONP (tag <script>), evitando
-   * problemi di CORS visto che GitHub Pages e script.google.com sono domini diversi.
-   * "action" vale 'login' oppure 'scan'.
+   * Chiama il backend Apps Script via JSONP (tag <script>).
+   * "action": 'login' | 'quickLogin' | 'scan'
    */
   function chiamaAPI(action, extraParams) {
     return new Promise(function (resolve, reject) {
-
       const callbackName = '__cb_' + Date.now() + '_' + Math.floor(Math.random() * 100000);
       const script = document.createElement('script');
       let timeoutId = null;
@@ -198,7 +267,6 @@
         if (script.parentNode) script.parentNode.removeChild(script);
         try { delete window[callbackName]; } catch (_) { window[callbackName] = undefined; }
       }
-
       function finish(fn, value) {
         if (completed) return;
         completed = true;
@@ -243,9 +311,14 @@
       const risposta = await chiamaAPI('login', { cf: cf, matricola: mat });
 
       if (risposta && risposta.successo) {
-        associazioneUtente = risposta.associazione;
-        nomeUtente = risposta.nome;
-        cfUtente = risposta.cf;
+        salvaSessioneUtente(risposta);
+
+        if (document.getElementById('ricordami').checked) {
+          localStorage.setItem('quickAccess', JSON.stringify({ cf: cf, matricola: mat, token: risposta.token }));
+        } else {
+          localStorage.removeItem('quickAccess');
+        }
+
         mostraScanner();
       } else {
         btn.disabled = false;
@@ -259,25 +332,71 @@
     }
   }
 
+  function salvaSessioneUtente(risposta) {
+    associazioneUtente = risposta.associazione;
+    nomeUtente = risposta.nome;
+    cfUtente = risposta.cf;
+    matricolaUtente = risposta.matricola;
+  }
+
   function mostraScanner() {
     document.getElementById('loginScreen').style.display = 'none';
     document.getElementById('app').style.display = 'block';
-    document.getElementById('welcomeBar').textContent =
-      'Accesso come: ' + nomeUtente + ' (' + associazioneUtente + ')';
+    document.getElementById('tesseraNome').textContent = nomeUtente;
+    document.getElementById('tesseraMatricola').textContent = matricolaUtente;
+    document.getElementById('tesseraAssociazione').textContent = associazioneUtente;
   }
 
   document.getElementById('logoutLink').addEventListener('click', function () {
     stopCamera();
-    associazioneUtente = null;
-    nomeUtente = null;
-    cfUtente = null;
+    fermaOrologioETimer();
+    localStorage.removeItem('quickAccess');
+    associazioneUtente = null; nomeUtente = null; cfUtente = null; matricolaUtente = null;
     document.getElementById('codiceFiscale').value = '';
     document.getElementById('matricola').value = '';
+    document.getElementById('ricordami').checked = false;
     document.getElementById('loginMessage').textContent = '';
     document.getElementById('loginButton').disabled = false;
     document.getElementById('app').style.display = 'none';
     document.getElementById('loginScreen').style.display = 'flex';
   });
+
+  // ===================== ACCESSO RAPIDO (all'apertura della pagina) =====================
+
+  tentaAccessoRapido();
+
+  async function tentaAccessoRapido() {
+    const salvato = localStorage.getItem('quickAccess');
+    if (!salvato) return;
+
+    let dati;
+    try { dati = JSON.parse(salvato); } catch (e) { localStorage.removeItem('quickAccess'); return; }
+
+    const msg = document.getElementById('loginMessage');
+    const btn = document.getElementById('loginButton');
+    btn.disabled = true;
+    msg.style.color = 'blue';
+    msg.textContent = 'Accesso rapido in corso...';
+
+    try {
+      const risposta = await chiamaAPI('quickLogin', { cf: dati.cf, matricola: dati.matricola, token: dati.token });
+
+      if (risposta && risposta.successo) {
+        salvaSessioneUtente(risposta);
+        localStorage.setItem('quickAccess', JSON.stringify({ cf: dati.cf, matricola: dati.matricola, token: risposta.token }));
+        mostraScanner();
+      } else {
+        localStorage.removeItem('quickAccess');
+        btn.disabled = false;
+        msg.style.color = 'red';
+        msg.textContent = (risposta && risposta.messaggio) || 'Accesso rapido non più valido, effettua di nuovo il login.';
+      }
+    } catch (errore) {
+      // Errore di rete: lasciamo semplicemente la schermata di login manuale, senza bloccare l'utente.
+      btn.disabled = false;
+      msg.textContent = '';
+    }
+  }
 
   // ===================== SCANNER =====================
 
@@ -290,7 +409,6 @@
   const startButton = document.getElementById('startButton');
   const technical = document.getElementById('technical');
   const resultPanel = document.getElementById('resultPanel');
-  const resultText = document.getElementById('resultText');
   const retryButton = document.getElementById('retryButton');
 
   let stream = null;
@@ -299,12 +417,16 @@
   let animationFrame = null;
   let lastScan = 0;
 
+  let clockInterval = null;
+  let countdownInterval = null;
+
   const SCAN_INTERVAL = 120;
 
   startButton.addEventListener('click', startScanner);
   retryButton.addEventListener('click', startScanner);
 
   async function startScanner() {
+    fermaOrologioETimer();
     stopCamera();
     qrFound = false;
     scanning = false;
@@ -316,7 +438,6 @@
       showCameraError('La pagina deve essere aperta tramite HTTPS.', 'SecureContext = false');
       return;
     }
-
     if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
       showCameraError('Questo browser non supporta la fotocamera.', 'getUserMedia non disponibile');
       return;
@@ -388,22 +509,82 @@
       const risposta = await chiamaAPI('scan', { qrCode: qrValue, associazione: associazioneUtente });
 
       if (risposta && risposta.valido) {
-        mostraRisultato(risposta.messaggio, true);
+        mostraRisultato(true, risposta.nomeEsercizio, risposta.sconto, null);
       } else {
-        mostraRisultato((risposta && risposta.messaggio) || 'Nessuna convenzione trovata.', false);
+        mostraRisultato(false, null, null, (risposta && risposta.messaggio) || 'Nessuna convenzione trovata.');
       }
     } catch (error) {
       console.error(error);
-      mostraRisultato('Errore di collegamento al motore di ricerca.', false);
+      mostraRisultato(false, null, null, 'Errore di collegamento al motore di ricerca.');
     }
   }
 
-  function mostraRisultato(message, success) {
-    resultText.textContent = message;
+  /**
+   * Schermata di verifica: mostra locale/sconto (o l'errore), i dati dello
+   * studente, e un orologio + timer live per impedire l'uso di screenshot vecchi.
+   */
+  function mostraRisultato(success, nomeEsercizio, sconto, messaggioErrore) {
     resultPanel.classList.remove('success', 'error');
     resultPanel.classList.add(success ? 'success' : 'error');
+
+    document.getElementById('resultBadge').textContent = success ? '✅ Verificato' : '❌ Non verificato';
+
+    if (success) {
+      document.getElementById('resultShopName').textContent = nomeEsercizio;
+      document.getElementById('resultDiscount').textContent = 'Sconto: ' + sconto;
+    } else {
+      document.getElementById('resultShopName').textContent = messaggioErrore;
+      document.getElementById('resultDiscount').textContent = '';
+    }
+
+    document.getElementById('resultStudent').textContent = nomeUtente + ' — Matricola ' + matricolaUtente;
+    document.getElementById('resultAssoc').textContent = associazioneUtente;
+
     resultPanel.style.display = 'block';
     setStatus(success ? 'Convenzione trovata' : 'Convenzione non trovata', success ? 'success' : 'error');
+
+    avviaOrologioETimer();
+  }
+
+  function avviaOrologioETimer() {
+    fermaOrologioETimer();
+
+    aggiornaOrologio();
+    clockInterval = setInterval(aggiornaOrologio, 1000);
+
+    let secondiRimasti = VALIDITA_VERIFICA_SECONDI;
+    aggiornaBarra(secondiRimasti);
+
+    countdownInterval = setInterval(function () {
+      secondiRimasti--;
+      aggiornaBarra(secondiRimasti);
+
+      if (secondiRimasti <= 0) {
+        fermaOrologioETimer();
+        resultPanel.style.display = 'none';
+        startPanel.style.display = 'flex';
+        setStatus('Pronto');
+      }
+    }, 1000);
+  }
+
+  function fermaOrologioETimer() {
+    if (clockInterval) clearInterval(clockInterval);
+    if (countdownInterval) clearInterval(countdownInterval);
+    clockInterval = null;
+    countdownInterval = null;
+  }
+
+  function aggiornaOrologio() {
+    const ora = new Date();
+    document.getElementById('liveClock').textContent = ora.toLocaleString('it-IT', { hour12: false });
+  }
+
+  function aggiornaBarra(secondi) {
+    const pct = Math.max(0, (secondi / VALIDITA_VERIFICA_SECONDI) * 100);
+    document.getElementById('timerBar').style.width = pct + '%';
+    document.getElementById('countdownLabel').textContent =
+      secondi > 0 ? ('Valida per altri ' + secondi + ' s') : 'Scaduta';
   }
 
   function handleCameraError(error) {
