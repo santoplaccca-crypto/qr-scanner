@@ -9,9 +9,9 @@
 
   <style>
     :root {
-      --brand-1: #1b1f3b;
-      --brand-2: #2d3561;
-      --brand-3: #4b3f72;
+      --brand-1: #0a4d8c;
+      --brand-2: #1976d2;
+      --brand-3: #4fc3f7;
     }
 
     * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
@@ -85,7 +85,7 @@
       padding: 24px 26px;
       background: linear-gradient(135deg, var(--brand-1) 0%, var(--brand-2) 50%, var(--brand-3) 100%);
       color: #fff;
-      box-shadow: 0 18px 36px -10px rgba(27,31,59,0.45), 0 4px 10px rgba(0,0,0,0.18);
+      box-shadow: 0 18px 36px -10px rgba(25,118,210,0.40), 0 4px 10px rgba(0,0,0,0.18);
       overflow: hidden;
       display: flex; flex-direction: column; justify-content: space-between;
     }
@@ -118,9 +118,14 @@
     .member-card-chip::before { top: 9px; }
     .member-card-chip::after { top: 18px; }
 
+    .member-card-name-label {
+      font-size: 9px; letter-spacing: 1.5px; text-transform: uppercase;
+      opacity: 0.6; font-weight: 700; margin-top: 16px; z-index: 1;
+    }
+
     .member-card-name {
       font-size: 21px; font-weight: 700; letter-spacing: 0.2px;
-      margin-top: 14px; z-index: 1; overflow-wrap: anywhere;
+      margin-top: 4px; z-index: 1; overflow-wrap: anywhere;
     }
 
     .member-card-bottom { display: flex; justify-content: space-between; align-items: flex-end; z-index: 1; gap: 12px; }
@@ -274,10 +279,11 @@
 
       <div class="member-card">
         <div class="member-card-top">
-          <span class="member-card-label">Tessera Socio</span>
+          <span class="member-card-label">Tessera Associazioni</span>
           <span class="member-card-chip"></span>
         </div>
 
+        <div class="member-card-name-label">Nome e Cognome</div>
         <div class="member-card-name" id="cardNome">—</div>
 
         <div class="member-card-bottom">
